@@ -1,0 +1,529 @@
+{
+  "name": "CAPSTONE - Interview Scheduling (Airtable + Google Calendar)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "cbaa9b16-999d-4ee5-8755-11cced30a79e",
+      "name": "Check Scheduling Requests",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1760,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Interviews",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "filterByFormula": "AND({Interview Status}='PENDING', {Scheduled Start} != BLANK(), {Scheduled End} != BLANK(), {Candidate} != BLANK(), {Interviewer Email} != BLANK(), {Calendar Event ID} = BLANK(), IS_AFTER({Scheduled Start}, NOW()))",
+        "options": {}
+      },
+      "id": "4dd430ab-a049-4f44-bdb0-242b7baaa205",
+      "name": "Find Pending Interviews",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -1536,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "98be3fa6-8a61-4810-a672-74de9b301d1e",
+      "name": "Each Pending Interview",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1328,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !!$json.fields?.Candidate?.[0] && !!$json.fields?.['Interviewer Email'] && !!$json.fields?.['Scheduled Start'] && !!$json.fields?.['Scheduled End'] && new Date($json.fields['Scheduled End']) > new Date($json.fields['Scheduled Start']) && new Date($json.fields['Scheduled Start']) > new Date() }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0f87572b-2cc7-42f5-8805-52c226ebb3bd",
+      "name": "Validate Interview",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "id": "={{ $('Each Pending Interview').item.json.fields.Candidate[0] }}",
+        "options": {}
+      },
+      "id": "6e4ce0f9-353d-418d-878c-6a013d9a7d81",
+      "name": "Get Scheduling Candidate",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.fields.Email || \"\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a5d01223-b6a7-42f1-9a57-b9f5e4689d06",
+      "name": "Candidate Email Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -656,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "demo@example.com",
+          "mode": "list",
+          "cachedResultName": "demo@example.com"
+        },
+        "timeMin": "={{ $('Each Pending Interview').item.json.fields['Scheduled Start'] }}",
+        "timeMax": "={{ $('Each Pending Interview').item.json.fields['Scheduled End'] }}",
+        "options": {
+          "outputFormat": "availability",
+          "timezone": {
+            "__rl": true,
+            "mode": "list",
+            "value": "Africa/Lagos"
+          }
+        }
+      },
+      "id": "559fb52f-bb2d-45f8-9107-24752f0f61cb",
+      "name": "Check Interviewer Availability",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -448,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.available }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dcc93212-ba76-4509-b492-75ece2e270da",
+      "name": "Slot Is Available",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "demo@example.com",
+          "mode": "list",
+          "cachedResultName": "demo@example.com"
+        },
+        "start": "={{ $('Each Pending Interview').item.json.fields['Scheduled Start'] }}",
+        "end": "={{ $('Each Pending Interview').item.json.fields['Scheduled End'] }}",
+        "useDefaultReminders": false,
+        "additionalFields": {
+          "attendees": "={{ $('Get Scheduling Candidate').item.json.fields.Email + ',' + $('Each Pending Interview').item.json.fields['Interviewer Email'] }}",
+          "conferenceDataUi": {
+            "conferenceDataValues": {
+              "conferenceSolution": "hangoutsMeet"
+            }
+          },
+          "description": "=Recruitment capstone interview. Airtable interview record: {{ $('Each Pending Interview').item.json.id }}",
+          "sendUpdates": "all",
+          "summary": "=Interview: {{ $('Get Scheduling Candidate').item.json.fields['Full Name'] || 'Candidate' }} | {{ $('Each Pending Interview').item.json.fields['Interview Type'] || 'Interview' }}"
+        }
+      },
+      "id": "4a95fcfb-494f-4322-89e4-b144dd9707de",
+      "name": "Create Interview Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Interviews",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Each Pending Interview').item.json.id }}",
+            "Interview Status": "SCHEDULED",
+            "Calendar Event ID": "={{ $json.id }}",
+            "Meeting Link": "={{ $json.hangoutLink || ($json.conferenceData?.entryPoints || []).find(e => e.entryPointType === 'video')?.uri || $json.htmlLink || '' }}",
+            "Reminder Sent": false
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Interview Status",
+              "displayName": "Interview Status",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Calendar Event ID",
+              "displayName": "Calendar Event ID",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Meeting Link",
+              "displayName": "Meeting Link",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reminder Sent",
+              "displayName": "Reminder Sent",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4374c21d-3f67-4935-8adb-3776ec7a1824",
+      "name": "Save Scheduled Interview",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "Hiring Team <demo@example.com>",
+        "toEmail": "demo@example.com",
+        "subject": "=Interview scheduling conflict: {{ $(\"Each Pending Interview\").item.json.id }}",
+        "emailFormat": "text",
+        "text": "=The proposed interview time is unavailable on the configured calendar. Interview record: {{ $(\"Each Pending Interview\").item.json.id }}. Select a different slot in Airtable; status remains PENDING.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "823bb29d-086c-48e2-8278-bb044009ccd8",
+      "name": "Conflict Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "Hiring Team <demo@example.com>",
+        "toEmail": "demo@example.com",
+        "subject": "=Interview scheduling needs attention: {{ $(\"Each Pending Interview\").item.json.id }}",
+        "emailFormat": "text",
+        "text": "=Interview record {{ $(\"Each Pending Interview\").item.json.id }} has missing or invalid scheduling data or candidate email. Correct the Airtable record.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "2dbd0521-44c8-4e62-9d00-9fba22093248",
+      "name": "Missing Data Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -448,
+        448
+      ]
+    }
+  ],
+  "connections": {
+    "Check Scheduling Requests": {
+      "main": [
+        [
+          {
+            "node": "Find Pending Interviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Pending Interviews": {
+      "main": [
+        [
+          {
+            "node": "Each Pending Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Each Pending Interview": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Validate Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Interview": {
+      "main": [
+        [
+          {
+            "node": "Get Scheduling Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Missing Data Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Scheduling Candidate": {
+      "main": [
+        [
+          {
+            "node": "Candidate Email Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Email Present": {
+      "main": [
+        [
+          {
+            "node": "Check Interviewer Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Missing Data Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Interviewer Availability": {
+      "main": [
+        [
+          {
+            "node": "Slot Is Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Is Available": {
+      "main": [
+        [
+          {
+            "node": "Create Interview Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conflict Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Interview Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Save Scheduled Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Scheduled Interview": {
+      "main": [
+        [
+          {
+            "node": "Each Pending Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conflict Alert": {
+      "main": [
+        [
+          {
+            "node": "Each Pending Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missing Data Alert": {
+      "main": [
+        [
+          {
+            "node": "Each Pending Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
