@@ -1,0 +1,10 @@
+{
+  "candidates": [
+    {
+      "candidateId": "CAP26-TEST-INVALID",
+      "fullName": "Synthetic Missing CV",
+      "email": "synthetic.missing@example.com",
+      "jobId": "JOB-001"
+    }
+  ]
+}
