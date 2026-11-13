@@ -1,0 +1,1316 @@
+{
+  "name": "THE REVIEW, AI SHORTLIST AND HUMAN APPROVAL",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Candidate Screening Assessment",
+        "formDescription": "Welcome to the recruitment screening assessment. Enter your Candidate ID to continue.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Candidate ID",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Which Python features or libraries are you familiar with, and how would you use them to improve backend performance and data processing? Provide an example where possible."
+            },
+            {
+              "fieldLabel": "Describe a challenging technical bug or performance bottleneck you encountered and how you diagnosed and resolved it. If you have not encountered one, explain how you would approach troubleshooting it."
+            },
+            {
+              "fieldLabel": "Describe your experience with database design, SQL queries and database optimization. If you have limited experience, explain how you would approach these tasks."
+            },
+            {
+              "fieldLabel": "How do your current technical skills align with the requirements of this Python backend developer role? Identify your strongest areas and any skills you would need to improve.  "
+            },
+            {
+              "fieldLabel": "What experience do you have with Docker or other containerization tools? If you have not used them, explain how you would develop proficiency in Docker."
+            },
+            {},
+            {
+              "fieldLabel": "How do you keep your technical knowledge up to date, particularly in Python and database technologies? Share an example of something you recently learned or how you would apply new knowledge."
+            },
+            {
+              "fieldLabel": "Backend development often requires cross-functional coordination. Could you share an experience where you collaborated with frontend developers or product managers to define and deliver backend API requirements?"
+            },
+            {
+              "fieldLabel": "Imagine you need to design a new Python-based API endpoint that retrieves and filters large datasets from a SQL database. How would you structure the backend logic, handle database queries, and ensure the API remains highly responsive?"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "respondWithOptions": {
+            "values": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -656,
+        -16
+      ],
+      "id": "7cff9baa-cc68-474d-b9e4-7acd2c366014",
+      "name": "On form submission",
+      "alwaysOutputData": true,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst data = $json;\n\nconst candidateId = String(\n  data.candidateId ?? data[\"Candidate ID\"] ?? \"\"\n).trim();\n\nif (!candidateId) {\n  throw new Error(\"Candidate ID is missing\");\n}\n\nconst answers = [];\n\nfor (let i = 1; i <= 8; i++) {\n  const questionId = `Q${i}`;\n  const answer = String(data[questionId] ?? \"\").trim();\n\n  if (!answer) {\n    throw new Error(\n      `Missing ${questionId} answer for ${candidateId}`\n    );\n  }\n\n  answers.push({\n    questionId,\n    answer\n  });\n}\n\nreturn {\n  json: {\n    candidateId,\n    candidateName: data.candidateName ?? \"\",\n    jobId: data.jobId ?? \"JOB-001\",\n    answers,\n    answersJson: JSON.stringify(answers),\n    answerCount: answers.length,\n    screeningStatus: \"ANSWERS_SUBMITTED\",\n    isSynthetic: data.isSynthetic === true,\n    submittedAt: data.submittedAt ?? new Date().toISOString()\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        64
+      ],
+      "id": "b1bb0fe0-0bd5-44e4-a52f-0d260779b70c",
+      "name": "Prepare screening answers"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "filterByFormula": "= {{ '{Candidate ID} = \"' + $json.candidateId + '\"' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        48
+      ],
+      "id": "aeeb21fb-a493-43b5-9394-1e23777e24e7",
+      "name": "Search records"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Screening",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Screening ID": "={{ 'SCR-' + $json.fields['Candidate ID'] }}",
+            "Completed At": "={{ $('Prepare screening answers').item.json.submittedAt }}",
+            "Missing Skills": "={{ $json.fields['Missing Skills'] ?? '' }}",
+            "Screening Questions": "={{ $json.fields['Screening Questions'] }}",
+            "Candidate Responses": "={{ $('Prepare screening answers').item.json.answersJson }}",
+            "Recruiter Notes": "SIMULATION ONLY — Synthetic screening answers for Group 8 capstone."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Screening ID",
+              "displayName": "Screening ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Questions",
+              "displayName": "Screening Questions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate Responses",
+              "displayName": "Candidate Responses",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AI Evaluation",
+              "displayName": "AI Evaluation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Technical Score",
+              "displayName": "Technical Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Communication Score",
+              "displayName": "Communication Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Overall Score",
+              "displayName": "Overall Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Recommendation",
+              "displayName": "Screening Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "SHORTLIST",
+                  "value": "SHORTLIST"
+                },
+                {
+                  "name": "HOLD",
+                  "value": "HOLD"
+                },
+                {
+                  "name": "REJECT",
+                  "value": "REJECT"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Review",
+              "displayName": "Recruiter Review",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Notes",
+              "displayName": "Recruiter Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Status",
+              "displayName": "Screening Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "GENERATED",
+                  "value": "GENERATED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "IN PROGRESS",
+                  "value": "IN PROGRESS"
+                },
+                {
+                  "name": "COMPLETED",
+                  "value": "COMPLETED"
+                },
+                {
+                  "name": "REVIEWED",
+                  "value": "REVIEWED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sent At",
+              "displayName": "Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Completed At",
+              "displayName": "Completed At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        112
+      ],
+      "id": "c1475071-6203-47ab-93cc-28c8f47cc41c",
+      "name": "Create a record"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Screening",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "AI Evaluation": "={{ $json.aiEvaluation }}",
+            "Technical Score": "={{ $json.technicalScore }}",
+            "Communication Score": "={{ $json.communicationScore }}",
+            "Overall Score": "={{ $json.overallScore }}",
+            "Screening Recommendation": "={{ $json.screeningRecommendation }}",
+            "Completed At": "={{ new Date().toISOString() }}",
+            "Screening ID": "={{ $json.screeningId }}"
+          },
+          "matchingColumns": [
+            "Screening ID"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Screening ID",
+              "displayName": "Screening ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Questions",
+              "displayName": "Screening Questions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate Responses",
+              "displayName": "Candidate Responses",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AI Evaluation",
+              "displayName": "AI Evaluation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Technical Score",
+              "displayName": "Technical Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Communication Score",
+              "displayName": "Communication Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Overall Score",
+              "displayName": "Overall Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Recommendation",
+              "displayName": "Screening Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "SHORTLIST",
+                  "value": "SHORTLIST"
+                },
+                {
+                  "name": "HOLD",
+                  "value": "HOLD"
+                },
+                {
+                  "name": "REJECT",
+                  "value": "REJECT"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Review",
+              "displayName": "Recruiter Review",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Notes",
+              "displayName": "Recruiter Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Status",
+              "displayName": "Screening Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "GENERATED",
+                  "value": "GENERATED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "IN PROGRESS",
+                  "value": "IN PROGRESS"
+                },
+                {
+                  "name": "COMPLETED",
+                  "value": "COMPLETED"
+                },
+                {
+                  "name": "REVIEWED",
+                  "value": "REVIEWED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sent At",
+              "displayName": "Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Completed At",
+              "displayName": "Completed At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        176
+      ],
+      "id": "d27a401b-682e-44a7-b34c-c4790873a070",
+      "name": "Update record"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        304,
+        128
+      ],
+      "id": "5f34e16e-f801-4c2e-806c-6ebd17ea99d0",
+      "name": "Analyze document"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "74e5bfb4-c06b-4312-82ca-8e474870b054",
+              "leftValue": "={{ $json.fields?.['Screening Recommendation'] ?? $json['Screening Recommendation'] }}",
+              "rightValue": "SHORTLIST",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        144
+      ],
+      "id": "f63698b0-9594-4208-910b-925d5c9ccb91",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "demo@example.com",
+        "subject": "=Recruiter Approval Required — {{ $('Prepare screening answers').item.json.candidateName }} | {{ $('Prepare screening answers').item.json.candidateId }}",
+        "message": "=Dear Recruiter,\n\nA candidate has completed the AI-assisted screening assessment for the Python Backend Developer position and has been recommended for human review.\n\nCANDIDATE INFORMATION\n\nCandidate Name: {{ $('Prepare screening answers').item.json.candidateName }}\n\nCandidate ID: {{ $('Prepare screening answers').item.json.candidateId }}\n\nJob Reference: {{ $('Prepare screening answers').item.json.jobId }}\n\nSCREENING EVALUATION\nOverall Score:  {{ $('Update record').item.json.fields[\"Overall Score\"] }}/100\n\nTechnical Score:   {{ $('Update record').item.json.fields[\"Technical Score\"] }} /100\nCommunication Score: {{ $('Update record').item.json.fields[\"Communication Score\"] }}/100\n\nAI Recommendation: {{ $('Update record').item.json.fields[\"Screening Recommendation\"] }}\n\n\nAI Evaluation:\n{{ $('Update record').item.json.fields[\"AI Evaluation\"] }}\n\nACTION REQUIRED\n\nPlease review the candidate's screening performance and determine whether they should proceed to the interview stage.\n\nComplete your review using the secure approval form below:\n\n{{ $execution.resumeFormUrl }}\n\nSelect APPROVED or REJECTED and provide a brief explanation supporting your decision.\n\nYour decision will be recorded in the recruitment system and used to determine the candidate's next stage.\n\nPlease note that the AI screening recommendation is advisory. Final decisions require human judgment.\n\nBest regards,\n\nAI Recruitment Pipeline & Candidate Experience Orchestrator\n\nTechCrush — Group 8\n\nAutomated Notification | Capstone Simulation",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        -96
+      ],
+      "id": "c99010ca-52f2-4e15-883c-eac08a70597b",
+      "name": "Send a message"
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Recruiter Candidate review",
+        "formDescription": "Review the shortlisted candidate below and submit your decision to approve or reject the candidate for the next stage of recruitment.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "candidate_name",
+              "placeholder": "Candidate Name",
+              "defaultValue": "={{ $('Prepare screening answers').item.json.candidateName }}"
+            },
+            {
+              "fieldLabel": "recruiter_decision",
+              "fieldType": "dropdown",
+              "defaultValue": "APPROVED",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "APPROVED"
+                  },
+                  {
+                    "option": "REJECTED"
+                  }
+                ]
+              },
+              "multiselect": true,
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "recruiter_notes",
+              "fieldType": "textarea",
+              "placeholder": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "recruiter_notes",
+              "fieldType": "textarea",
+              "placeholder": "Enter notes about your decision"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1296,
+        -96
+      ],
+      "id": "f48c1a14-8a95-4f4e-b41b-87347401855e",
+      "name": "Wait"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        -224
+      ],
+      "id": "613ddf27-b129-44eb-bb6f-7287db12ef0b",
+      "name": "Create or update a record1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f38b5456-0d8d-48fc-836c-c704a5e8e351",
+              "leftValue": "{{ $json.recruiter_decision }}",
+              "rightValue": "APPROVED",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        -64
+      ],
+      "id": "d2e10443-ccc7-4995-bf42-780ac67a8e59",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Screening",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Recruiter Review": "APPROVED",
+            "Recruiter Notes": "={{ $json.recruiter_notes || '' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Screening ID",
+              "displayName": "Screening ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Questions",
+              "displayName": "Screening Questions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate Responses",
+              "displayName": "Candidate Responses",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AI Evaluation",
+              "displayName": "AI Evaluation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Technical Score",
+              "displayName": "Technical Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Communication Score",
+              "displayName": "Communication Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Overall Score",
+              "displayName": "Overall Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Recommendation",
+              "displayName": "Screening Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "SHORTLIST",
+                  "value": "SHORTLIST"
+                },
+                {
+                  "name": "HOLD",
+                  "value": "HOLD"
+                },
+                {
+                  "name": "REJECT",
+                  "value": "REJECT"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Review",
+              "displayName": "Recruiter Review",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Notes",
+              "displayName": "Recruiter Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Screening Status",
+              "displayName": "Screening Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "GENERATED",
+                  "value": "GENERATED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "IN PROGRESS",
+                  "value": "IN PROGRESS"
+                },
+                {
+                  "name": "COMPLETED",
+                  "value": "COMPLETED"
+                },
+                {
+                  "name": "REVIEWED",
+                  "value": "REVIEWED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sent At",
+              "displayName": "Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Completed At",
+              "displayName": "Completed At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        -480
+      ],
+      "id": "e84e178e-45b3-43f0-8bea-2c5c5edf52cf",
+      "name": "Update record1"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Prepare screening answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare screening answers": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Analyze document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze document": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Update record1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create or update a record1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
