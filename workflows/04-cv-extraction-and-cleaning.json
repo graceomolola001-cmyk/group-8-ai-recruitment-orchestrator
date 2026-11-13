@@ -1,0 +1,363 @@
+{
+  "name": "CV Extraction and Cleaning",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Submit your CV",
+        "formDescription": "Please submit your CV",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "upload CV",
+              "fieldType": "file",
+              "fieldName": "resumeFile"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -448,
+        -352
+      ],
+      "id": "df68a058-a412-4ac5-8984-939eb603e545",
+      "name": "On form submission"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=resumeFile",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        -352
+      ],
+      "id": "fbcbed3f-fa99-4541-a369-7d1e197f531a",
+      "name": "Extract Candidates CV"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $input.item;\n\n// Get the text produced by Extract From File\nconst rawText = item.json.text || \"\";\n\n// Clean and normalize the extracted text\nconst cleanedText = rawText\n  .replace(/\\r\\n/g, \"\\n\")\n  .replace(/\\r/g, \"\\n\")\n  .replace(/[ \\t]+/g, \" \")\n  .replace(/^[ \\t]+|[ \\t]+$/gm, \"\")\n  .replace(/\\n{3,}/g, \"\\n\\n\")\n  .trim();\n\n// Check whether meaningful text was extracted\nconst extractionStatus =\n  cleanedText.length > 50 ? \"success\" : \"failed\";\n\n// Return the original data plus our cleaned text\nreturn {\n  json: {\n    ...item.json,\n    resumeText: cleanedText,\n    extractionStatus: extractionStatus,\n    extractionMessage:\n      extractionStatus === \"success\"\n        ? \"CV text extracted successfully\"\n        : \"CV text is empty or too short\"\n  },\n  binary: item.binary\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -352
+      ],
+      "id": "3ab4edce-955e-4115-b950-8a2939935fba",
+      "name": "Clean Candidates CV"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": " CV Extraction Test",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidateId": "test-candidate-001",
+            "jobId": "test-job-001",
+            "Resume Text": "={{ $json.resumeText }}",
+            "Extraction Status": "={{ $json.extractionStatus }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "candidateId",
+              "displayName": "candidateId",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jobId",
+              "displayName": "jobId",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Resume Text",
+              "displayName": "Resume Text",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Extraction Status",
+              "displayName": "Extraction Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Attachments",
+              "displayName": "Attachments",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Attachment Summary",
+              "displayName": "Attachment Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        -448
+      ],
+      "id": "2eb499cf-c3fc-481c-8f69-b1d9a6b9efcd",
+      "name": "Create Candidates record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ab0e8bc5-8221-4a23-a38b-ad9e048134f2",
+              "leftValue": "={{ $json.extractionStatus }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        -352
+      ],
+      "id": "0c72db50-e391-4fff-b5ed-90f30662bd30",
+      "name": "If CV extraction is successful"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": " CV Extraction Test",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidateId": "test-candidate-001",
+            "jobId": "test-job-001",
+            "Resume Text": "={{ $json.resumeText }}",
+            "Extraction Status": "={{ $json.extractionStatus }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "candidateId",
+              "displayName": "candidateId",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jobId",
+              "displayName": "jobId",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Resume Text",
+              "displayName": "Resume Text",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Extraction Status",
+              "displayName": "Extraction Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Attachments",
+              "displayName": "Attachments",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Attachment Summary",
+              "displayName": "Attachment Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        -256
+      ],
+      "id": "1f51ed85-7030-4ae1-8738-66c5ffd5ed00",
+      "name": "Create Failed CV Extraction List"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract Candidates CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Candidates CV": {
+      "main": [
+        [
+          {
+            "node": "Clean Candidates CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Candidates CV": {
+      "main": [
+        [
+          {
+            "node": "If CV extraction is successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If CV extraction is successful": {
+      "main": [
+        [
+          {
+            "node": "Create Candidates record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Failed CV Extraction List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
