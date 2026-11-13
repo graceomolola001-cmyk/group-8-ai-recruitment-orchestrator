@@ -642,16 +642,6 @@
             "node": "Final Approvalfrom hiring manager",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "congratulatory message",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "rejection message",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
