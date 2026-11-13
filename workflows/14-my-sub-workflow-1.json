@@ -1,0 +1,143 @@
+{
+  "name": "My Sub-Workflow 1",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "candidateId"
+            },
+            {
+              "name": "candidateRecordId"
+            },
+            {
+              "name": "jobId"
+            },
+            {
+              "name": "requestedState"
+            },
+            {
+              "name": "nextAction"
+            },
+            {
+              "name": "reason"
+            },
+            {
+              "name": "routingDecision"
+            },
+            {
+              "name": "recommendation"
+            },
+            {
+              "name": "matchScore",
+              "type": "number"
+            },
+            {
+              "name": "isMockEvaluation",
+              "type": "boolean"
+            },
+            {
+              "name": "sourceExecutionId"
+            },
+            {
+              "name": "sourceWorkflowName"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "SUB-01 Input",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "id": "={{ $json.candidateRecordId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        176
+      ],
+      "id": "20d1d2a5-6496-4881-b62a-479f3084e309",
+      "name": "Get a record"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $(\"SUB-01 Input\").item.json;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        336
+      ],
+      "id": "ad32ed43-9ec1-46a8-9bad-01bf901c6113",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n/*\n SUB-01: TEST SUB-WORKFLOW INPUT\n Mode: Run Once for Each Item\n*/\n\nconst request = $json;\n\nconst requiredFields = [\n  \"candidateId\",\n  \"candidateRecordId\",\n  \"requestedState\"\n];\n\nconst missingFields = requiredFields.filter(\n  field =>\n    request[field] === undefined ||\n    request[field] === null ||\n    String(request[field]).trim() === \"\"\n);\n\nif (missingFields.length > 0) {\n  throw new Error(\n    \"SUB-01 is missing required inputs: \" +\n    missingFields.join(\", \") +\n    \". Execute SUB-01 through the parent workflow.\"\n  );\n}\n\nreturn {\n  json: {\n    ...request,\n    subWorkflowReceived: true,\n    subWorkflowStatus: \"INPUT_OK\"\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        352
+      ],
+      "id": "6b8a4ad9-2e67-4e45-b33c-527f11327f56",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "connections": {
+    "SUB-01 Input": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a record": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
