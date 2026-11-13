@@ -475,8 +475,8 @@
         "operation": "update",
         "documentId": {
           "__rl": true,
-          "value": "12JpA31qfy4KOH3IN3jfWZ-Jy61HBOeWGQ3tHHX3NBdo",
-          "mode": "list",
+          "value": "REPLACE_WITH_SPREADSHEET_ID",
+          "mode": "id",
           "cachedResultName": "Recruitment Database",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_SPREADSHEET_ID/edit?usp=drivesdk"
         },
