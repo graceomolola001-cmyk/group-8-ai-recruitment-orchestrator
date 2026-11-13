@@ -1,0 +1,664 @@
+{
+  "name": "Offer Approval - Request",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"candidate_id\": \"C001\",\n  \"name\": \"Jane Doe\",\n  \"email\": \"demo@example.com\",\n  \"job_id\": \"JOB001\",\n  \"current_state\": \"OFFER\",\n  \"recruiter_approval\": \"PENDING\",\n  \"final_decision\": \"PENDING\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -816,
+        208
+      ],
+      "id": "7b6a1c44-a847-4e09-9c58-9da89a142cc8",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "af607dff-c9fc-477e-84d5-25bf808081f4",
+              "leftValue": "={{ $json.current_state }}",
+              "rightValue": "OFFER",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -608,
+        208
+      ],
+      "id": "2fc18fe8-c884-484f-8354-210fa44d35a0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Offers",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Offer ID": "CAP26-001",
+            "id": "CAP26-001",
+            "Candidate Response": "ACCEPTED",
+            "Offer Status": "APPROVED",
+            "Employment Type": "Full-time",
+            "Currency": "NGN",
+            "Salary": 500000
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Offer ID",
+              "displayName": "Offer ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Salary",
+              "displayName": "Salary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "NGN",
+                  "value": "NGN"
+                },
+                {
+                  "name": "USD",
+                  "value": "USD"
+                },
+                {
+                  "name": "GBP",
+                  "value": "GBP"
+                },
+                {
+                  "name": "EUR",
+                  "value": "EUR"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Start Date",
+              "displayName": "Start Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Employment Type",
+              "displayName": "Employment Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Full-time",
+                  "value": "Full-time"
+                },
+                {
+                  "name": "Part-time",
+                  "value": "Part-time"
+                },
+                {
+                  "name": "Contract",
+                  "value": "Contract"
+                },
+                {
+                  "name": "Internship",
+                  "value": "Internship"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Offer Status",
+              "displayName": "Offer Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "DRAFT",
+                  "value": "DRAFT"
+                },
+                {
+                  "name": "PENDING APPROVAL",
+                  "value": "PENDING APPROVAL"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "ACCEPTED",
+                  "value": "ACCEPTED"
+                },
+                {
+                  "name": "DECLINED",
+                  "value": "DECLINED"
+                },
+                {
+                  "name": "EXPIRED",
+                  "value": "EXPIRED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Approval Notes",
+              "displayName": "Approval Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Offer Letter",
+              "displayName": "Offer Letter",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Offer Sent At",
+              "displayName": "Offer Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Response Deadline",
+              "displayName": "Response Deadline",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Response Date",
+              "displayName": "Response Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate Response",
+              "displayName": "Candidate Response",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "ACCEPTED",
+                  "value": "ACCEPTED"
+                },
+                {
+                  "name": "DECLINED",
+                  "value": "DECLINED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -528,
+        528
+      ],
+      "id": "5cf9d3b5-0efd-4dc7-a034-d65c81fa6240",
+      "name": "Update record"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "demo@example.com",
+        "subject": "REQUEST FOR FINAL APPROVAL",
+        "message": "=Hello Hiring Manager,\n\nA candidate has reached the final offer stage and requires your approval.\n\nCandidate: {{ $json.name }}\nCandidate ID: {{ $json.candidate_id }}\nJob ID: {{ $json.job_id }}\n\nPlease review the candidate and record your decision:\n\n- Approve the offer\n- Reject the candidate\n\nPlease use the designated approval link or approval form to submit your decision.\n\nThank you,\nRecruitment Automation System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        32
+      ],
+      "id": "9766a656-7ff2-44a6-b929-6d2028bf7111",
+      "name": "Final Approvalfrom hiring manager"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "abf50108-6a17-4acc-858d-3a79b351ad51",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3c80ddf7-31c9-469e-89cf-1dd7b2edd0cc",
+      "name": "If approved"
+    },
+    {
+      "parameters": {
+        "sendTo": "demo@example.com",
+        "subject": "Offer of Employment",
+        "message": "=Dear {{ $json.name }},  Congratulations! We are pleased to inform you that we would like to offer you the position for which you applied.  Please review the attached or linked offer document for details about the role, compensation, and terms of employment.Welcome Onboard.  Kind regards, Recruitment Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        64
+      ],
+      "id": "78b609de-c4f9-40b6-a068-350c99904ae4",
+      "name": "congratulatory message"
+    },
+    {
+      "parameters": {
+        "sendTo": "demo@example.com",
+        "subject": "Update on Your Job Application",
+        "message": "=Dear {{ $json.name }},  Thank you for your interest in joining our organization and for the time you invested in our recruitment process.  After careful consideration, we regret to inform you that we will not be proceeding with your application for this position.  We appreciate your interest and wish you success in your career.  Kind regards, Recruitment Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        96,
+        176
+      ],
+      "id": "2584735f-7631-457e-915e-5ff9d8347e55",
+      "name": "rejection message"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12JpA31qfy4KOH3IN3jfWZ-Jy61HBOeWGQ3tHHX3NBdo",
+          "mode": "list",
+          "cachedResultName": "Recruitment Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_SPREADSHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_SPREADSHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.name }}",
+            "candidate_id": "={{ $json.candidate_id }}",
+            "email": "={{ $json.email }}",
+            "job_id": "={{ $json.job_id }}",
+            "state": "={{ $json.current_state }}",
+            "new_state": "={{ $json.final_decision }}"
+          },
+          "matchingColumns": [
+            "name"
+          ],
+          "schema": [
+            {
+              "id": "candidate_id",
+              "displayName": "candidate_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "new_state",
+              "displayName": "new_state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -400,
+        112
+      ],
+      "id": "6c962005-ab57-44e0-aa38-8e8161d53d44",
+      "name": "update audit"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "update audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Approvalfrom hiring manager": {
+      "main": [
+        [
+          {
+            "node": "If approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If approved": {
+      "main": [
+        [
+          {
+            "node": "congratulatory message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "rejection message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update audit": {
+      "main": [
+        [
+          {
+            "node": "Final Approvalfrom hiring manager",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "congratulatory message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "rejection message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
