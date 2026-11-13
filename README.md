@@ -18,10 +18,12 @@ Our Group 8 capstone explored how a modular automation system could make those h
 | --- | --- | --- |
 | **Application intake** | Receive applications, check required fields, and create or update candidate records | n8n webhook, JavaScript, Airtable |
 | **CV processing** | Download PDFs, extract readable text, and prepare candidate context | n8n HTTP/PDF nodes |
-| **Role matching** | Compare candidate details with role requirements using a structured scoring contract | JavaScript mock in the main demonstrated evaluator; additional AI evaluation module work |
+| **Role matching** | Compare candidate details with role requirements using a structured scoring contract | Live AI evaluation was part of the intended design; a JavaScript mock was used for demonstration when API limits prevented live model testing |
 | **Screening** | Prepare questions and record screening information | n8n; team-contributed Python, LangChain, Pydantic, Gemini module |
 | **Human review** | Route shortlists and decisions for recruiter approval | Airtable, n8n |
 | **Interviews and offers** | Coordinate scheduling, reminders, and offer approval as separate modules | Google Calendar, Gmail, n8n |
+
+**Why we used a mock:** API limits prevented the team from using the intended live AI node during the demonstration. To test and show the surrounding recruitment workflow, we temporarily used a JavaScript mock that returned simulated evaluation data. The AI stage was intended to be connected for live execution once API access permitted it.
 
 **Scope:** This was a modular proof of concept. Several components were demonstrated with synthetic records. The exports do not establish that the full application-to-hire journey ran successfully end to end.
 
@@ -51,7 +53,7 @@ The diagram describes the **intended modular pipeline**. It is not a claim of ve
 
 ## Explore the implementation
 
-- **[Main 22-node orchestration export](workflows/03-capstone-project.json):** Intake, CV handling, job context, and a **mock JavaScript evaluator**
+- **[Main 22-node orchestration export](workflows/03-capstone-project.json):** Intake, CV handling, job context, and a **temporary JavaScript mock used when API limits blocked live AI testing**
 - **[All ten n8n exports](workflows/):** Supporting intake, CV extraction, human review, interview, reminder, and offer modules
 - **[Python screening-question generator](python-screening-generator/):** Team-contributed code and setup instructions
 - **[50 synthetic CVs](https://github.com/graceomolola001-cmyk/group-8-recruitment-test-data):** Dataset created independently by Grace
