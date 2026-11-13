@@ -1,59 +1,78 @@
-# From Application to Hire | Group 8 AI Recruitment Orchestrator
+# From Application to Hire: An AI-Assisted Recruitment Pipeline
 
-**TechCrush AI Automation Capstone | Group 8 collaborative project**  
+**TechCrush AI Automation Capstone · Group 8 · n8n · Airtable · JavaScript · Python · Gemini**
+
 **Team lead: Grace Omolola Odukoya**
 
-Grace coordinated project architecture, work allocation, initial application intake, and integration across the team. **She independently created all 50 synthetic candidate profiles and their PDF CV test data.** Group 8 teammates contributed modules including CV processing, scoring, screening, recruiter decisions, scheduling, and the Python question generator.
+## The challenge
 
-## The problem
+Imagine receiving 50 applications for one role. Someone has to collect the CVs, review relevant experience, compare each person with the job requirements, organize screening, and coordinate interview and offer decisions.
 
-Recruiters often move between forms, CV folders, spreadsheets, calendars and email to complete one hiring journey. The handoffs create duplication and unclear ownership. Group 8 designed a modular n8n recruitment orchestration prototype to make each stage explicit while keeping consequential decisions under human oversight.
+Now spread those steps across a form, an inbox, a spreadsheet, an ATS-like database, and a calendar. Every handoff takes attention.
 
-## What the team built
+Our Group 8 capstone explored how a modular automation system could make those handoffs easier to follow, while leaving hiring decisions with people.
 
-- Application intake via webhook, candidate splitting, required-field validation, and Airtable upsert.
-- CV download and PDF extraction components.
-- Job requirements retrieval, structured scoring contracts and business-rule routing.
-- Screening questions and analysis modules, with a Python/LangChain/Gemini generator contributed by the team.
-- Recruiter approval, offer and interview-scheduling workflow modules.
-- Candidate state transitions and audit-oriented structures.
-- A fully fictional [50-CV test dataset](https://github.com/graceomolola001-cmyk/group-8-recruitment-test-data), created independently by Grace.
+## What we built
 
-## Evidence boundaries
+| Module | Job in the hiring journey | Tools / approach |
+| --- | --- | --- |
+| **Application intake** | Receive applications, check required fields, and create or update candidate records | n8n webhook, JavaScript, Airtable |
+| **CV processing** | Download PDFs, extract readable text, and prepare candidate context | n8n HTTP/PDF nodes |
+| **Role matching** | Compare candidate details with role requirements using a structured scoring contract | JavaScript mock in the main demonstrated evaluator; additional AI evaluation module work |
+| **Screening** | Prepare questions and record screening information | n8n; team-contributed Python, LangChain, Pydantic, Gemini module |
+| **Human review** | Route shortlists and decisions for recruiter approval | Airtable, n8n |
+| **Interviews and offers** | Coordinate scheduling, reminders, and offer approval as separate modules | Google Calendar, Gmail, n8n |
 
-**The capstone was a modular proof of concept.** The main exported batch evaluation relied on a labelled JavaScript mock in the documented demonstration. A configured Gemini node, pinned screening outcomes or exported downstream modules do **not** prove live AI assessment or an end-to-end hire. Recruiter write-back, parent-to-child handoffs and some state transitions require verification.
+**Scope:** This was a modular proof of concept. Several components were demonstrated with synthetic records. The exports do not establish that the full application-to-hire journey ran successfully end to end.
 
-## Replicate safely
+## My contribution
 
-1. Create a test Airtable base with `Candidates`, `Jobs`, `Screening`, `Interviews`, `Offers` and `Audit` tables as relevant to each module.
-2. Import the sanitized n8n exports from `workflows/` **one at a time** and reconnect credentials privately.
-3. Start with one fictional `CAP26-` candidate from the linked test dataset.
-4. Test webhook validation, CV retrieval, extraction and the Airtable candidate write.
-5. Confirm any simulated scores are marked **mock**. Enable model calls only when configured and independently tested.
-6. Add screening and recruiter approvals with a verified audit trail before testing interview and offer progression.
-7. Test missing CV URLs, missing jobs, invalid states, duplicate applications and approval rejections.
+As team lead, **I coordinated the architecture and responsibilities, built the initial application intake, and worked on integrating the modules.**
 
-## Architecture
+I also **independently created all 50 synthetic candidate profiles and their PDF CVs**. That dataset gave the team fictional applicants to use during development and testing without exposing real candidate information.
+
+The broader capstone was collaborative. Other Group 8 members contributed workflow modules and the Python question generator. See [team credits and evidence](TEAM_AND_EVIDENCE.md).
+
+## How the system is designed
 
 ```mermaid
 flowchart LR
- A[HTML form] --> B[n8n intake webhook]
- B --> C[Validate and store applicant]
- C --> D[Retrieve and extract CV]
- D --> E[Scoring contract / evaluation]
- E --> F{Business rules}
- F --> G[Screening and questions]
- G --> H{Human recruiter approval}
- H --> I[Interview and offer modules]
- I --> J[Airtable records and audit]
+    A[Application form] --> B[Validate candidate]
+    B --> C[Store in Airtable]
+    C --> D[Download and parse CV]
+    D --> E[Evaluation contract]
+    E --> F[Screening]
+    F --> G{Recruiter approval}
+    G --> H[Interview and offer modules]
+    H --> I[State and audit records]
 ```
 
-The stages above represent the designed system, including partially integrated modules.
+The diagram describes the **intended modular pipeline**. It is not a claim of verified integration across every stage.
 
-## Project sources
+## Explore the implementation
 
-- [Team capstone artifacts in Google Drive](https://drive.google.com/drive/folders/1SirXxtXzJOiOH5pcO_K0COzGttZO66Ro)
-- [Grace's 50 synthetic candidate CVs](https://github.com/graceomolola001-cmyk/group-8-recruitment-test-data)
-- [Group 8 visual system blueprint](https://drive.google.com/file/d/1ShBErSUq1lbaNg8NlREmMeU2kMmb3Rqf/view)
+- **[Main 22-node orchestration export](workflows/03-capstone-project.json):** Intake, CV handling, job context, and a **mock JavaScript evaluator**
+- **[All ten n8n exports](workflows/):** Supporting intake, CV extraction, human review, interview, reminder, and offer modules
+- **[Python screening-question generator](python-screening-generator/):** Team-contributed code and setup instructions
+- **[50 synthetic CVs](https://github.com/graceomolola001-cmyk/group-8-recruitment-test-data):** Dataset created independently by Grace
+- **[Workflow map](docs/WORKFLOW_MAP.md):** How the modules relate
+- **[Replication checklist](docs/REPLICATION_CHECKLIST.md):** Suggested test sequence
+- **[Review and known issues](docs/REVIEW_AND_TEST_RESULTS.md):** Verified findings and outstanding integration work
 
-**Responsible-use warning:** This is an educational prototype, not a validated hiring decision engine. Do not use automated candidate recommendations for consequential employment decisions without human oversight, fairness evaluation and privacy controls.
+## Run a controlled test
+
+1. Set up a **test** n8n instance and fictional Airtable base. Keep imported workflows inactive.
+2. Import the [main workflow](workflows/03-capstone-project.json). Reconfigure Airtable table IDs, credentials, and any child workflow references.
+3. Start with a single fictional candidate, using the [sample payload](examples/sample-intake.json). Check its required fields and replace the sample CV URL with a verified file URL.
+4. Inspect candidate validation, CV retrieval, text extraction, and Airtable writes.
+5. Treat the main evaluator's JavaScript result as a **mock**. Configure and verify model calls separately before claiming AI inference.
+6. Test recruiter approval and rejection, then interview and offer modules with all external notifications disabled or redirected to a test inbox.
+7. Repeat with the [missing-CV test](examples/invalid-missing-resume.json) and duplicate submissions.
+
+**Known caveats:** The earlier `02-` intake export has disconnected wiring. Some module-to-module handoffs remain unverified. The legacy offer-approval notification routing was corrected in GitHub but has not yet passed a live execution test. See the [review](docs/REVIEW_AND_TEST_RESULTS.md).
+
+## What this project demonstrates
+
+This capstone shows collaborative automation architecture, workflow orchestration, API integrations, synthetic test-data design, and human-in-the-loop decisions.
+
+The recruitment system is an **educational prototype**. It must undergo integration testing, fairness evaluation, privacy review, and human oversight before any use involving real hiring decisions.
