@@ -1,0 +1,1560 @@
+{
+  "name": "Group 8 | Offer Approval — Test Capstone Airtable (REBUILT)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"candidateId\": \"CAP26-001\",\n  \"managerEmail\": \"demo@example.com\",\n  \"offerId\": \"OFR-CAP26-001\",\n  \"sendCandidateNotification\": false,\n  \"allowCandidateCommunication\": false,\n  \"actor\": \"Hiring Manager\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2976,
+        544
+      ],
+      "id": "ef2b88d4-2f5a-49d0-a89a-7a0a6e8b2b6a",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One offer-approval request per sub-workflow execution.\nconst items = $input.all();\nif (items.length !== 1) throw new Error(`Offer Approval expects 1 candidate item per execution; got ${items.length}.`);\nconst raw = items[0].json || {};\nconst candidateId = String(raw.candidateId ?? raw.candidate_id ?? '').trim();\nconst managerEmail = String(raw.managerEmail ?? raw.manager_email ?? '').trim();\nconst offerId = String(raw.offerId ?? raw.offer_id ?? `OFR-${candidateId}`).trim();\nconst jobId = String(raw.jobId ?? raw.job_id ?? '').trim();\nconst actor = String(raw.actor ?? 'Hiring Manager').trim();\nif (!/^[A-Za-z0-9_-]+$/.test(candidateId)) throw new Error('Candidate ID is missing or contains unsupported characters.');\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(managerEmail)) throw new Error('managerEmail is required (valid hiring-manager email).');\nif (!/^[A-Za-z0-9_-]+$/.test(offerId)) throw new Error('offerId must be alphanumeric, hyphen, or underscore.');\nconst currentState = String(raw.currentState ?? raw.current_state ?? 'OFFER').trim().toUpperCase();\nif (currentState !== 'OFFER') throw new Error(`Offer approval requires currentState OFFER. Got: ${currentState}`);\nreturn [{json:{\n candidateId,managerEmail,offerId,jobId,actor,\n requestState:currentState,\n sendCandidateNotification:raw.sendCandidateNotification === true,\n allowCandidateCommunication:raw.allowCandidateCommunication === true,\n airtableCandidateFilter:`{Candidate ID} = '${candidateId}'`,\n requestedAt:new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2736,
+        544
+      ],
+      "id": "895d15c9-2cd9-4362-bcbd-d408be64d5df",
+      "name": "01 | Normalize Offer Request"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "filterByFormula": "={{ $json.airtableCandidateFilter }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -2496,
+        544
+      ],
+      "id": "ef0b6053-90eb-41cf-a326-ee6818d3fa32",
+      "name": "02 | Find Candidate in Test Capstone",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().filter(x=>x.json && x.json.id);\nif(rows.length !== 1) throw new Error(`Expected exactly one Airtable Candidates record, got ${rows.length}. Check Candidate ID and duplicate records.`);\nconst candidate=rows[0].json; const fields=candidate.fields ?? candidate;\nconst request=$('01 | Normalize Offer Request').first().json;\nconst actualId=String(fields['Candidate ID'] ?? '').trim();\nconst state=String(fields['Current State'] ?? '').trim().toUpperCase();\nif(actualId !== request.candidateId) throw new Error(`Candidate mismatch: expected ${request.candidateId}, found ${actualId}`);\nif(state !== 'OFFER') throw new Error(`Candidate ${actualId} has state ${state}; move to OFFER via your state manager before approval.`);\nconst email=String(fields['Email'] ?? '').trim();\nconst fullName=String(fields['Full Name'] ?? '').trim();\nconst isMock=fields['Is Mock Evaluation'] === true;\nconst canNotify=request.sendCandidateNotification && request.allowCandidateCommunication && !isMock && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) && !/@example\\.(com|org|net)$/i.test(email);\nreturn [{json:{...request,candidateRecordId:candidate.id,candidateEmail:email,candidateName:fullName,candidateState:state,isMockEvaluation:isMock,canNotify}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        544
+      ],
+      "id": "75796b4a-22ee-4f4d-932d-c0c2834e3325",
+      "name": "03 | Validate Candidate and State"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Offers",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Offer ID": "={{ $('03 | Validate Candidate and State').first().json.offerId }}",
+            "Candidate": "={{ [$('03 | Validate Candidate and State').first().json.candidateRecordId] }}",
+            "Offer Status": "PENDING APPROVAL",
+            "Recruiter Approval": "PENDING",
+            "Candidate Response": "PENDING"
+          },
+          "matchingColumns": [
+            "Offer ID"
+          ],
+          "schema": [
+            {
+              "id": "Offer ID",
+              "displayName": "Offer ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Offer Status",
+              "displayName": "Offer Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "DRAFT",
+                  "value": "DRAFT"
+                },
+                {
+                  "name": "PENDING APPROVAL",
+                  "value": "PENDING APPROVAL"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "ACCEPTED",
+                  "value": "ACCEPTED"
+                },
+                {
+                  "name": "DECLINED",
+                  "value": "DECLINED"
+                },
+                {
+                  "name": "EXPIRED",
+                  "value": "EXPIRED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Candidate Response",
+              "displayName": "Candidate Response",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "ACCEPTED",
+                  "value": "ACCEPTED"
+                },
+                {
+                  "name": "DECLINED",
+                  "value": "DECLINED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -2000,
+        544
+      ],
+      "id": "47cc27c5-e5ad-420f-8d6f-3486422e8f22",
+      "name": "04 | Upsert Pending Offer",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $('03 | Validate Candidate and State').first().json.managerEmail }}",
+        "subject": "=Group 8 | Approve employment offer for {{ $('03 | Validate Candidate and State').first().json.candidateName }} ({{ $('03 | Validate Candidate and State').first().json.candidateId }})",
+        "message": "=Hello Hiring Manager,\n\nA candidate has reached the OFFER stage and requires your final decision.\n\nCandidate: {{ $('03 | Validate Candidate and State').first().json.candidateName }}\nCandidate ID: {{ $('03 | Validate Candidate and State').first().json.candidateId }}\nOffer ID: {{ $('03 | Validate Candidate and State').first().json.offerId }}\n\nChoose APPROVE or DECLINE using the approval buttons below.\n\nThis is a recruitment workflow demonstration. Please verify the candidate record and offer terms before approving.\n\nGroup 8 | AI Recruitment Orchestrator",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve offer",
+            "disapproveLabel": "Decline offer"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -1744,
+        544
+      ],
+      "id": "8a647ef8-c838-46be-9fb0-2ff7e224ead7",
+      "name": "05 | Manager Approval (Gmail Wait)",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only the actual Gmail send-and-wait outcome can decide approval.\nconst payload=$json ?? {};\nconst value=payload.data?.approved ?? payload.approved;\nconst approved=value === true || value === 'true';\nconst rejected=value === false || value === 'false';\nif(!approved && !rejected) throw new Error('Approval response missing boolean data.approved. In Gmail Send and Wait set approval type to Approve and Disapprove.');\nconst context=$('03 | Validate Candidate and State').first().json;\nconst pending=$('04 | Upsert Pending Offer').first().json;\nif(!/^rec[A-Za-z0-9]+$/.test(String(pending.id ?? ''))) throw new Error('Offer Airtable record id missing; initial upsert may have failed.');\nreturn [{json:{...context,offerRecordId:pending.id,approved,decision:approved?'APPROVED':'REJECTED',decidedAt:new Date().toISOString(),executionId:String($execution.id ?? '')}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1456,
+        544
+      ],
+      "id": "fc3c6af8-87b4-4ecd-8c2f-67325aab6e3b",
+      "name": "06 | Interpret Approval Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "74857e82-98dd-461d-a394-5ef49efec9b5",
+              "leftValue": "={{ $json.approved === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1248,
+        544
+      ],
+      "id": "6dbcfa9f-fc4a-455e-8d9a-d362cb4cbd78",
+      "name": "07 | Approved?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Offers",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('06 | Interpret Approval Response').first().json.offerRecordId }}",
+            "Offer Status": "APPROVED",
+            "Recruiter Approval": "APPROVED",
+            "Approval Notes": "={{ 'Approved by hiring manager via n8n on ' + $('06 | Interpret Approval Response').first().json.decidedAt }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Offer Status",
+              "displayName": "Offer Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "DRAFT",
+                  "value": "DRAFT"
+                },
+                {
+                  "name": "PENDING APPROVAL",
+                  "value": "PENDING APPROVAL"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "ACCEPTED",
+                  "value": "ACCEPTED"
+                },
+                {
+                  "name": "DECLINED",
+                  "value": "DECLINED"
+                },
+                {
+                  "name": "EXPIRED",
+                  "value": "EXPIRED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Approval Notes",
+              "displayName": "Approval Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        144
+      ],
+      "id": "e221c402-d204-4dc8-b8ff-e408e08911ed",
+      "name": "08A | Mark Offer APPROVED",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('06 | Interpret Approval Response').first().json.candidateRecordId }}",
+            "Recruiter Approval": "APPROVED",
+            "Next Action": "Prepare and dispatch the formal offer letter"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -752,
+        144
+      ],
+      "id": "edac92d6-0f23-4fe7-994b-6783760fa6d0",
+      "name": "09A | Update Candidate APPROVED",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Audit Logs",
+          "mode": "list",
+          "cachedResultName": "Audit Logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Audit ID": "={{ 'AUD-OFFER-APP-' + $execution.id }}",
+            "Execution ID": "={{ $('06 | Interpret Approval Response').first().json.executionId }}",
+            "Workflow Name": "Offer Approval - Airtable (Group 8)",
+            "Candidate": "={{ [$('06 | Interpret Approval Response').first().json.candidateRecordId] }}",
+            "Action": "OFFER_APPROVED_BY_MANAGER",
+            "Actor": "={{ $('06 | Interpret Approval Response').first().json.actor }}",
+            "Timestamp": "={{ $('06 | Interpret Approval Response').first().json.decidedAt }}",
+            "Old State": "OFFER",
+            "New State": "OFFER",
+            "Request Summary": "={{ 'Approval requested for ' + $('06 | Interpret Approval Response').first().json.offerId }}",
+            "Response Summary": "Manager approved offer; pending preparation of formal offer letter"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Audit ID",
+              "displayName": "Audit ID",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Workflow Name",
+              "displayName": "Workflow Name",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "type": "array",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Action",
+              "displayName": "Action",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Actor",
+              "displayName": "Actor",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "type": "dateTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Old State",
+              "displayName": "Old State",
+              "type": "options",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "New State",
+              "displayName": "New State",
+              "type": "options",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Request Summary",
+              "displayName": "Request Summary",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Response Summary",
+              "displayName": "Response Summary",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        144
+      ],
+      "id": "d2924c5b-a585-4d00-83ec-38ff79f0c7af",
+      "name": "10A | Audit Approved Offer",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f673480d-3d46-4520-ad0b-6da0d4f1edbf",
+              "leftValue": "={{ $('06 | Interpret Approval Response').first().json.canNotify === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        144
+      ],
+      "id": "02587126-7311-4f3a-b637-95fe5aefbb38",
+      "name": "11A | Notify Candidate?"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('06 | Interpret Approval Response').first().json.candidateEmail }}",
+        "subject": "Update on your application",
+        "message": "=Dear {{ $('06 | Interpret Approval Response').first().json.candidateName }},\n\nYour application has progressed to the offer preparation stage. Our recruitment team will contact you with the formal terms and next steps.\n\nPlease note that this message is not itself a formal offer of employment.\n\nRegards,\nRecruitment Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "577b99d0-0b12-4f20-a8cd-583301cb3eed",
+      "name": "12A | Email Candidate (Approved)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$('06 | Interpret Approval Response').first().json;\nreturn [{json:{success:true,candidateId:r.candidateId,candidateRecordId:r.candidateRecordId,offerId:r.offerId,offerRecordId:r.offerRecordId,managerDecision:'APPROVED',candidateState:'OFFER',offerStatus:'APPROVED',candidateNotificationRequested:r.canNotify,executionId:r.executionId,processedAt:new Date().toISOString()}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        144
+      ],
+      "id": "60636fa9-2563-4d4d-b790-6d7304340fcf",
+      "name": "13A | Return Approved Result"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Offers",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('06 | Interpret Approval Response').first().json.offerRecordId }}",
+            "Offer Status": "DRAFT",
+            "Recruiter Approval": "REJECTED",
+            "Approval Notes": "={{ 'Hiring manager declined approval on ' + $('06 | Interpret Approval Response').first().json.decidedAt + '. Recruiter review required.' }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Offer Status",
+              "displayName": "Offer Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "DRAFT",
+                  "value": "DRAFT"
+                },
+                {
+                  "name": "PENDING APPROVAL",
+                  "value": "PENDING APPROVAL"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "SENT",
+                  "value": "SENT"
+                },
+                {
+                  "name": "ACCEPTED",
+                  "value": "ACCEPTED"
+                },
+                {
+                  "name": "DECLINED",
+                  "value": "DECLINED"
+                },
+                {
+                  "name": "EXPIRED",
+                  "value": "EXPIRED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Approval Notes",
+              "displayName": "Approval Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        928
+      ],
+      "id": "df178149-5f82-493f-ad8d-cfbdf8d2ca1d",
+      "name": "08B | Mark Offer NOT APPROVED",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('06 | Interpret Approval Response').first().json.candidateRecordId }}",
+            "Recruiter Approval": "REJECTED",
+            "Current State": "ON HOLD",
+            "Previous State": "OFFER",
+            "Next Action": "Recruiter to review declined offer approval"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Current State",
+              "displayName": "Current State",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "APPLIED",
+                  "value": "APPLIED"
+                },
+                {
+                  "name": "SCREENING",
+                  "value": "SCREENING"
+                },
+                {
+                  "name": "SHORTLISTED",
+                  "value": "SHORTLISTED"
+                },
+                {
+                  "name": "INTERVIEW",
+                  "value": "INTERVIEW"
+                },
+                {
+                  "name": "SECOND INTERVIEW",
+                  "value": "SECOND INTERVIEW"
+                },
+                {
+                  "name": "OFFER",
+                  "value": "OFFER"
+                },
+                {
+                  "name": "HIRED",
+                  "value": "HIRED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                },
+                {
+                  "name": "ON HOLD",
+                  "value": "ON HOLD"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Previous State",
+              "displayName": "Previous State",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "APPLIED",
+                  "value": "APPLIED"
+                },
+                {
+                  "name": "SCREENING",
+                  "value": "SCREENING"
+                },
+                {
+                  "name": "SHORTLISTED",
+                  "value": "SHORTLISTED"
+                },
+                {
+                  "name": "INTERVIEW",
+                  "value": "INTERVIEW"
+                },
+                {
+                  "name": "SECOND INTERVIEW",
+                  "value": "SECOND INTERVIEW"
+                },
+                {
+                  "name": "OFFER",
+                  "value": "OFFER"
+                },
+                {
+                  "name": "HIRED",
+                  "value": "HIRED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                },
+                {
+                  "name": "ON HOLD",
+                  "value": "ON HOLD"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -752,
+        928
+      ],
+      "id": "5f3ac55a-ad34-4c57-91ad-92babf7d9054",
+      "name": "09B | Move Candidate to ON HOLD",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Audit Logs",
+          "mode": "list",
+          "cachedResultName": "Audit Logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Audit ID": "={{ 'AUD-OFFER-DECLINED-' + $execution.id }}",
+            "Execution ID": "={{ $('06 | Interpret Approval Response').first().json.executionId }}",
+            "Workflow Name": "Offer Approval - Airtable (Group 8)",
+            "Candidate": "={{ [$('06 | Interpret Approval Response').first().json.candidateRecordId] }}",
+            "Action": "OFFER_DECLINED_BY_MANAGER",
+            "Actor": "={{ $('06 | Interpret Approval Response').first().json.actor }}",
+            "Timestamp": "={{ $('06 | Interpret Approval Response').first().json.decidedAt }}",
+            "Old State": "OFFER",
+            "New State": "ON HOLD",
+            "Request Summary": "={{ 'Approval requested for ' + $('06 | Interpret Approval Response').first().json.offerId }}",
+            "Response Summary": "Manager declined approval; candidate placed ON HOLD for recruiter review"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Audit ID",
+              "displayName": "Audit ID",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Workflow Name",
+              "displayName": "Workflow Name",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "type": "array",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Action",
+              "displayName": "Action",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Actor",
+              "displayName": "Actor",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "type": "dateTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Old State",
+              "displayName": "Old State",
+              "type": "options",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "New State",
+              "displayName": "New State",
+              "type": "options",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Request Summary",
+              "displayName": "Request Summary",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Response Summary",
+              "displayName": "Response Summary",
+              "type": "string",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "readOnly": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        928
+      ],
+      "id": "8ad32fba-2bca-41ce-b326-b3c88d3d82cc",
+      "name": "10B | Audit Declined Offer",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7ceaa323-ba8d-407f-bad4-81b859a4f6c8",
+              "leftValue": "={{ $('06 | Interpret Approval Response').first().json.canNotify === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        928
+      ],
+      "id": "49585fa6-0a5e-4a00-8e98-baed39a722f3",
+      "name": "11B | Notify Candidate?"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('06 | Interpret Approval Response').first().json.candidateEmail }}",
+        "subject": "Update on your application",
+        "message": "=Dear {{ $('06 | Interpret Approval Response').first().json.candidateName }},\n\nYour application is undergoing additional review. Our recruitment team will contact you when the next steps are confirmed.\n\nRegards,\nRecruitment Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        784
+      ],
+      "id": "1d205d14-dd16-48f1-bd79-f84c84f42765",
+      "name": "12B | Email Candidate (On Hold)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$('06 | Interpret Approval Response').first().json;\nreturn [{json:{success:true,candidateId:r.candidateId,candidateRecordId:r.candidateRecordId,offerId:r.offerId,offerRecordId:r.offerRecordId,managerDecision:'REJECTED',candidateState:'ON HOLD',offerStatus:'DRAFT',candidateNotificationRequested:r.canNotify,executionId:r.executionId,processedAt:new Date().toISOString()}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        928
+      ],
+      "id": "c3f88d78-958e-4ef2-b37a-a39109564ccb",
+      "name": "13B | Return Declined Result"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "01 | Normalize Offer Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01 | Normalize Offer Request": {
+      "main": [
+        [
+          {
+            "node": "02 | Find Candidate in Test Capstone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 | Find Candidate in Test Capstone": {
+      "main": [
+        [
+          {
+            "node": "03 | Validate Candidate and State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 | Validate Candidate and State": {
+      "main": [
+        [
+          {
+            "node": "04 | Upsert Pending Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 | Upsert Pending Offer": {
+      "main": [
+        [
+          {
+            "node": "05 | Manager Approval (Gmail Wait)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 | Manager Approval (Gmail Wait)": {
+      "main": [
+        [
+          {
+            "node": "06 | Interpret Approval Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 | Interpret Approval Response": {
+      "main": [
+        [
+          {
+            "node": "07 | Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 | Approved?": {
+      "main": [
+        [
+          {
+            "node": "08A | Mark Offer APPROVED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "08B | Mark Offer NOT APPROVED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08A | Mark Offer APPROVED": {
+      "main": [
+        [
+          {
+            "node": "09A | Update Candidate APPROVED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09A | Update Candidate APPROVED": {
+      "main": [
+        [
+          {
+            "node": "10A | Audit Approved Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10A | Audit Approved Offer": {
+      "main": [
+        [
+          {
+            "node": "11A | Notify Candidate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11A | Notify Candidate?": {
+      "main": [
+        [
+          {
+            "node": "12A | Email Candidate (Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13A | Return Approved Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12A | Email Candidate (Approved)": {
+      "main": [
+        [
+          {
+            "node": "13A | Return Approved Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08B | Mark Offer NOT APPROVED": {
+      "main": [
+        [
+          {
+            "node": "09B | Move Candidate to ON HOLD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09B | Move Candidate to ON HOLD": {
+      "main": [
+        [
+          {
+            "node": "10B | Audit Declined Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10B | Audit Declined Offer": {
+      "main": [
+        [
+          {
+            "node": "11B | Notify Candidate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11B | Notify Candidate?": {
+      "main": [
+        [
+          {
+            "node": "12B | Email Candidate (On Hold)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13B | Return Declined Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12B | Email Candidate (On Hold)": {
+      "main": [
+        [
+          {
+            "node": "13B | Return Declined Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
