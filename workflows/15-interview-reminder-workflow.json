@@ -1,0 +1,1619 @@
+{
+  "name": "INTERVIEW REMINDER WORKFLOW",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -208,
+        608
+      ],
+      "id": "bef97a0c-6f5d-48de-87aa-cc89c98d299c",
+      "name": "Hourly Check"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Interviews",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "filterByFormula": "AND(   NOT({Reminder Sent}),   IS_AFTER({Scheduled Start}, NOW()),   IS_BEFORE({Scheduled Start}, DATEADD(NOW(), 24, 'hours')) )",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        608
+      ],
+      "id": "8b585c21-79da-49f7-9370-973a17023bcc",
+      "name": "Find Upcoming Interviews",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d8ba96f2-3e62-46ca-9dc9-d2e528d65d2a",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        608
+      ],
+      "id": "cf4dc411-57b3-4fa3-ad3c-741bdf8d7a66",
+      "name": "Any Interviews?"
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "id": "={{ $json.fields.Candidate[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        128
+      ],
+      "id": "3ad95627-7c7f-4a41-9ea2-a90b14326043",
+      "name": "Get Candidate",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e2fd95b5-cc64-4bfb-850c-718bad02ffee",
+              "leftValue": "={{ $json.fields.Email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        64
+      ],
+      "id": "8c35ca6f-06c0-497a-9a55-2ffe8b5f4b85",
+      "name": "Has Email?"
+    },
+    {
+      "parameters": {
+        "fromEmail": "Hiring Team <demo@example.com>",
+        "toEmail": "={{ $json.fields.Email }}",
+        "subject": "=Interview Reminder: {{ $('Each Interview').item.json.fields['Interview Type'] }} Interview",
+        "emailFormat": "text",
+        "text": "=Hello {{ $json.fields['Full Name'] || 'Candidate' }},\n\nThis is a reminder about your upcoming interview.\n\nDate and time: {{ DateTime.fromISO($('Each Interview').item.json.fields['Scheduled Start']).setZone('Africa/Lagos').toFormat('cccc, d LLLL yyyy, h:mm a') }} (Lagos time)\nInterviewer: {{ $('Each Interview').item.json.fields['Interviewer'] || 'our hiring team' }}\nMeeting link: {{ $('Each Interview').item.json.fields['Meeting Link'] || 'Your recruiter will share the link shortly' }}\n\nPlease join a few minutes early. Good luck!",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1136,
+        32
+      ],
+      "id": "58693d1c-9f07-4c48-b75f-7fb2acdab15e",
+      "name": "Remind Candidate",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Interviews",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Reminder Sent": true,
+            "id": "={{ $('Each Interview').item.json.id }}",
+            "Reminder Sent At": "2026-10-10T14:49:19"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Interview ID",
+              "displayName": "Interview ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Candidate",
+              "displayName": "Candidate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interview Stage",
+              "displayName": "Interview Stage",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "INTERVIEW",
+                  "value": "INTERVIEW"
+                },
+                {
+                  "name": "SECOND INTERVIEW",
+                  "value": "SECOND INTERVIEW"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interview Type",
+              "displayName": "Interview Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Technical",
+                  "value": "Technical"
+                },
+                {
+                  "name": "Behavioral",
+                  "value": "Behavioral"
+                },
+                {
+                  "name": "HR",
+                  "value": "HR"
+                },
+                {
+                  "name": "Panel",
+                  "value": "Panel"
+                },
+                {
+                  "name": "Final",
+                  "value": "Final"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interviewer",
+              "displayName": "Interviewer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interviewer Email",
+              "displayName": "Interviewer Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scheduled Start",
+              "displayName": "Scheduled Start",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Scheduled End",
+              "displayName": "Scheduled End",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Calendar Event ID",
+              "displayName": "Calendar Event ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Meeting Link",
+              "displayName": "Meeting Link",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interview Status",
+              "displayName": "Interview Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "SCHEDULED",
+                  "value": "SCHEDULED"
+                },
+                {
+                  "name": "CONFIRMED",
+                  "value": "CONFIRMED"
+                },
+                {
+                  "name": "COMPLETED",
+                  "value": "COMPLETED"
+                },
+                {
+                  "name": "CANCELLED",
+                  "value": "CANCELLED"
+                },
+                {
+                  "name": "RESCHEDULED",
+                  "value": "RESCHEDULED"
+                },
+                {
+                  "name": "NO SHOW",
+                  "value": "NO SHOW"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Reminder Sent",
+              "displayName": "Reminder Sent",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reminder Sent At",
+              "displayName": "Reminder Sent At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Feedback Submitted",
+              "displayName": "Feedback Submitted",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Technical Score",
+              "displayName": "Technical Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Communication Score",
+              "displayName": "Communication Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Problem Solving Score",
+              "displayName": "Problem Solving Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Culture/Team Score",
+              "displayName": "Culture/Team Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Overall Interview Score",
+              "displayName": "Overall Interview Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interview Feedback",
+              "displayName": "Interview Feedback",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Gemini Feedback Analysis",
+              "displayName": "Gemini Feedback Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interview Recommendation",
+              "displayName": "Interview Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "ADVANCE",
+                  "value": "ADVANCE"
+                },
+                {
+                  "name": "SECOND INTERVIEW",
+                  "value": "SECOND INTERVIEW"
+                },
+                {
+                  "name": "OFFER",
+                  "value": "OFFER"
+                },
+                {
+                  "name": "REJECT",
+                  "value": "REJECT"
+                },
+                {
+                  "name": "HOLD",
+                  "value": "HOLD"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interviewer Decision",
+              "displayName": "Interviewer Decision",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "ADVANCE",
+                  "value": "ADVANCE"
+                },
+                {
+                  "name": "REJECT",
+                  "value": "REJECT"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        -32
+      ],
+      "id": "5dbaedb2-d6f4-4d38-865e-e400cacfe95b",
+      "name": "Mark Reminded",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "Reminder Alerts <demo@example.com>",
+        "toEmail": "demo@example.com",
+        "subject": "Interview reminder failed",
+        "emailFormat": "text",
+        "text": "=Interview {{ $('Each Interview').item.json.id }} could not be reminded.\nReason: {{ $json.error?.message || 'Candidate has no email, or an unknown error occurred.' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2032,
+        176
+      ],
+      "id": "1da0b306-c969-4c7e-9a52-de3d1fccc865",
+      "name": "Reminder Failed",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appREPLACE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Test Capstone",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblREPLACE_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Candidates",
+          "cachedResultUrl": "https://REPLACE_WITH_PRIVATE_ENDPOINT/appREPLACE_BASE_ID/tblREPLACE_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Is Mock Evaluation": false,
+            "id": "={{ $('Get Candidate').item.json.id }}",
+            "Next Action": "Attend interview",
+            "Next Action Due": "={{ $('Each Interview').item.json.fields['Scheduled Start'] }}",
+            "Last Contacted At": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Candidate ID",
+              "displayName": "Candidate ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Linked Job",
+              "displayName": "Linked Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resume URL",
+              "displayName": "Resume URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resume File",
+              "displayName": "Resume File",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Resume Text",
+              "displayName": "Resume Text",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Skills",
+              "displayName": "Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Education",
+              "displayName": "Education",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Certifications",
+              "displayName": "Certifications",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Role",
+              "displayName": "Current Role",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Company",
+              "displayName": "Current Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Years of Experience",
+              "displayName": "Years of Experience",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Employment Type Preference",
+              "displayName": "Employment Type Preference",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Full-time",
+                  "value": "Full-time"
+                },
+                {
+                  "name": "Part-time",
+                  "value": "Part-time"
+                },
+                {
+                  "name": "Contract",
+                  "value": "Contract"
+                },
+                {
+                  "name": "Internship",
+                  "value": "Internship"
+                },
+                {
+                  "name": "Any",
+                  "value": "Any"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Date",
+              "displayName": "Application Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current State",
+              "displayName": "Current State",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "APPLIED",
+                  "value": "APPLIED"
+                },
+                {
+                  "name": "SCREENING",
+                  "value": "SCREENING"
+                },
+                {
+                  "name": "SHORTLISTED",
+                  "value": "SHORTLISTED"
+                },
+                {
+                  "name": "INTERVIEW",
+                  "value": "INTERVIEW"
+                },
+                {
+                  "name": "SECOND INTERVIEW",
+                  "value": "SECOND INTERVIEW"
+                },
+                {
+                  "name": "OFFER",
+                  "value": "OFFER"
+                },
+                {
+                  "name": "HIRED",
+                  "value": "HIRED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                },
+                {
+                  "name": "ON HOLD",
+                  "value": "ON HOLD"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Previous State",
+              "displayName": "Previous State",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "APPLIED",
+                  "value": "APPLIED"
+                },
+                {
+                  "name": "SCREENING",
+                  "value": "SCREENING"
+                },
+                {
+                  "name": "SHORTLISTED",
+                  "value": "SHORTLISTED"
+                },
+                {
+                  "name": "INTERVIEW",
+                  "value": "INTERVIEW"
+                },
+                {
+                  "name": "SECOND INTERVIEW",
+                  "value": "SECOND INTERVIEW"
+                },
+                {
+                  "name": "OFFER",
+                  "value": "OFFER"
+                },
+                {
+                  "name": "HIRED",
+                  "value": "HIRED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                },
+                {
+                  "name": "ON HOLD",
+                  "value": "ON HOLD"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Match Score",
+              "displayName": "Match Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Matched Skills",
+              "displayName": "Matched Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Experience Alignment",
+              "displayName": "Experience Alignment",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Strong",
+                  "value": "Strong"
+                },
+                {
+                  "name": "Moderate",
+                  "value": "Moderate"
+                },
+                {
+                  "name": "Weak",
+                  "value": "Weak"
+                },
+                {
+                  "name": "Unknown",
+                  "value": "Unknown"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Gemini Evaluation",
+              "displayName": "Gemini Evaluation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Gemini Recommendation",
+              "displayName": "Gemini Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "SCREENING",
+                  "value": "SCREENING"
+                },
+                {
+                  "name": "SHORTLIST",
+                  "value": "SHORTLIST"
+                },
+                {
+                  "name": "HOLD",
+                  "value": "HOLD"
+                },
+                {
+                  "name": "REJECT",
+                  "value": "REJECT"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Screening Questions",
+              "displayName": "Screening Questions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Screening Score",
+              "displayName": "Screening Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Interview Score",
+              "displayName": "Interview Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Final Decision",
+              "displayName": "Final Decision",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "OFFER",
+                  "value": "OFFER"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                },
+                {
+                  "name": "HIRED",
+                  "value": "HIRED"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Recruiter Approval",
+              "displayName": "Recruiter Approval",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PENDING",
+                  "value": "PENDING"
+                },
+                {
+                  "name": "APPROVED",
+                  "value": "APPROVED"
+                },
+                {
+                  "name": "REJECTED",
+                  "value": "REJECTED"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Approval Notes",
+              "displayName": "Approval Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Assigned Recruiter",
+              "displayName": "Assigned Recruiter",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Candidate Source",
+              "displayName": "Candidate Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Website",
+                  "value": "Website"
+                },
+                {
+                  "name": "Email",
+                  "value": "Email"
+                },
+                {
+                  "name": "LinkedIn",
+                  "value": "LinkedIn"
+                },
+                {
+                  "name": "Referral",
+                  "value": "Referral"
+                },
+                {
+                  "name": "Job Board",
+                  "value": "Job Board"
+                },
+                {
+                  "name": "Other",
+                  "value": "Other"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Contacted At",
+              "displayName": "Last Contacted At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Next Action Due",
+              "displayName": "Next Action Due",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Interviews",
+              "displayName": "Interviews",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Screenings",
+              "displayName": "Screenings",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Offers",
+              "displayName": "Offers",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Audit Logs",
+              "displayName": "Audit Logs",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Errors",
+              "displayName": "Errors",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Job ID",
+              "displayName": "Job ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Evaluation Source",
+              "displayName": "Evaluation Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Is Mock Evaluation",
+              "displayName": "Is Mock Evaluation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1808,
+        -112
+      ],
+      "id": "c421789d-f566-4168-8076-3aa9e461a6f6",
+      "name": "Update Candidate",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        464,
+        464
+      ],
+      "id": "4e72550d-0e05-4e5a-97cf-7da17ac17cdf",
+      "name": "Each Interview"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        464,
+        656
+      ],
+      "id": "836706fb-e9fa-4d9c-b9b9-b67b954398b3",
+      "name": "No Operation"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        -112
+      ],
+      "id": "7f449a72-a1ff-4662-a0c8-e1a681677f38",
+      "name": "Do Nothing"
+    }
+  ],
+  "connections": {
+    "Hourly Check": {
+      "main": [
+        [
+          {
+            "node": "Find Upcoming Interviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Upcoming Interviews": {
+      "main": [
+        [
+          {
+            "node": "Any Interviews?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Interviews?": {
+      "main": [
+        [
+          {
+            "node": "Each Interview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reminder Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Remind Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reminder Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remind Candidate": {
+      "main": [
+        [
+          {
+            "node": "Mark Reminded",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reminder Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Reminded": {
+      "main": [
+        [
+          {
+            "node": "Do Nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reminder Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Candidate": {
+      "main": [
+        [
+          {
+            "node": "Each Interview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reminder Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reminder Failed": {
+      "main": [
+        [
+          {
+            "node": "Each Interview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Each Interview": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Do Nothing": {
+      "main": [
+        [
+          {
+            "node": "Update Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
